@@ -1,0 +1,130 @@
+#defining the problem
+We need to be able to go into each of the read output files and pull out all the reads with the correct base calls and indicies/barcodes.
+We need to be able to sort the reads into different files based on the barcodes, with attatched indices and attatched information.
+we should get (48) output files that are labled by indexes and whether it is forward/reverse reads(based on illumina's terms), 
+2 incorrectly paired files(for foreward and reverse), and 2 files for unknown indices (if one or both don't match the known indicies).
+There are going to be 48 barcodes, 48 of which are the reverse complements of the 24 barcodes given.
+
+#determine the output that would be informative
+reporting the number of reads with completely matched indices, add up all line counts divided by four 
+The output FASTQ files should all be in the correct barcode order, however one should be specified as the reverse complement, so that you don't
+have to call those reverse complementing function again.
+
+#Unit Tests
+Make 4 FASTQ files with 3 reads each- one file per R#, each with one read that is correct, one read that has index hopping, and one read that has an incorrect barcode.
+
+/projects/bgmp/shared/2017_sequencing/
+ls -1 *.gz | while read line; do cat $line | head -4; done
+zcat 1294_S1_L008_R1_001.fastq.gz | head -12
+
+
+Match
+R2: index 1  CTCTGGAT               R3: index 1  ATCCAGAG
+
+Mismatch
+R2: index 2  AGGATAGC               R3: index 2  GCAAGATC   (rev comp of GATCTTGC)
+
+Both Wrong
+R2: index 3  NCTTCGAC               R3: index 3  NTCGAAGA
+
+unit_test_R*.fastq
+
+
+indicies:
+
+CTCTGGAT-ATCCAGAG
+AGGATAGC-GCAAGATC
+NCTTCGAC-NTCGAAGA
+
+
+
+Pseudocode:
+##If low quality score, sort into unknown
+
+open all necessary files (52+) using itertools
+
+create dictionary to count number of times barcode pair occurs - both matches and mismatches
+
+def reverse_complement(index_R3):
+    """ A function to find the reverse complement of a sequence of DNA """"
+    -Take in the original string by looping through sequence
+    -if bp = T, replace with A
+    -if bp = G, replace with C
+    -if bp = A, replace with T
+    -if bp = C, replace with G
+        - get the complement of the original string
+        -then after you have the complement of the sequence, you must reverse it in order
+         to get the reverse complement
+     Return revcomp_index
+
+
+def add_indexes():
+"""add indicies from R2 and R3 to the header lines withing R1 and R4, separated by a dash"""
+    add indicies to header lines separated by dash
+    start 4 counters to keep track of lines and record #
+    open files R1, R2, R3, R4 and write to them
+        Start all counters +1
+        take R2 and R3 at Nth position, write to R1 header at Nth position creating new file for R1
+        take R2 and R3 at Nth position, write to R4 header at Nth position creating new file for R4
+    return new, edited R1 and R4 files
+
+def convert_phred():
+"""A function to convert phred scores to quality scores"""
+    taking in the 4th line of the read, go through the first 8 phred scores, subtract 33, convert to decimal
+    save to variable
+    return variable
+
+def check_index():
+"""a function to  check and see if a barcode matched pair is within the list"
+fill list (or array?) with all possible barcode combinations
+    loop through list, comparing index pairs with each other,
+        if compared index pair matches an item, then return it, otherwise,
+        write it to unknown file for either R1 or R4 depending on which its from
+    return matching index pair
+
+
+
+
+"""Code to sort and match reads to files"""
+    -4 counters set for going through the files so we are taking the same set of data from each file
+    -1 array for R1, each line for 1 record filling a 1D numpy array with 4 different components (string)
+    -1 array for R2, each line for 1 record filling a 1D numpy array with 4 different components (string)
+    -1 array for R3, each line for 1 record filling a 1D numpy array with 4 different components (string)
+    -1 array for R4, each line for 1 record filling a 1D numpy array with 4 different components (string)
+        -add records to numpy array, filling them with the information from the Nth record
+            -reverse complement R3 using function reverse_complement
+            if R2 and R3 match:
+                add indicies to header of R1 and R4 using add_indicies function
+                if more than one char of the phred scores is less than 20
+                    sort this read to unknown R1 or R4
+                if all scores are greater than 20
+                Check to make sure that both indexes are real indexes using check_index function
+                    if they are
+                        write edited R1 and R4 to matched files for index and read 
+                        add count to dictionary for index matched pair
+            if R2 and R3 do not match, but do not contain an 'N' but are not unknown,
+                add indicies to header of R1 and R4 using add_indicies function
+                if more than one char of the phred scores is less than 20
+                    sort this read to unknown R1 or R4
+                if all scores are greater than 20
+                Check to make sure that both indexes are real indexes using check_index function
+                    if they are
+                        write edited R1 and R4 to matched files for index and read
+                        add count to dictionary for index unmmatched pair
+            add counter to count number of reads in unknown R1
+            add counter to count number of reads in unknown R4
+            if R2 and R3 do not match but contain an "N" or are unknown,
+                add indicies to header of R1 and R4 using add_indicies function
+                write edited R1 and R4 to unknown files
+                counters for number of reads for R1 and R4 +1
+        reset arrays
+        counters +1
+
+
+At the end you ~should~ have the 52 files needed, the dictionary with counts, and a counter with the number of record in the unknown files
+
+
+#close all files
+#####fix this- not all unknown indicies contain N, so we need to have a way to determine whether both R2 and corresponding R3 are actual barcodes
+
+
