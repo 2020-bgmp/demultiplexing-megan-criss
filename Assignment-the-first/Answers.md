@@ -21,8 +21,14 @@
         ![R4 histogram](https://github.com/2020-bgmp/demultiplexing-megan-criss/blob/master/Assignment-the-first/r4_avg_phredperposition.png)
     2. Based on these histograms, I would say that a good quality score cutoff would be 25 for this data. It appears that the averages are mostly over 30,      however some are slightly below 30. Because of this, I think that having a quality score cutoff of 25 would take out any  really bad data, while keeping both the good and average data. I believe the standard cutoff score is 20, so 25 is just a little higher than that.
     3.  
-            zcat /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R2_001.fastq.gz | awk 'NR%4 ==0'|grep 'N' | wc -l
-            zcat /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R3_001.fastq.gz | awk 'NR%4 ==0'|grep 'N' | wc -l
+            zcat /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R2_001.fastq.gz | awk 'NR%4 ==2'| grep "N" | wc -l
+            3976613
+            zcat /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R2_001.fastq.gz | awk 'NR%4 ==2'| grep "N" | wc -l
+            3328051         
+            
+3328051+3976613=7304664 indexes
+
+
 ## Part 2
 1. Define the problem
 2. Describe output
