@@ -1,0 +1,124 @@
+___________________________________________________________________________
+~~~~~~~~~~~~~~~~~~~~~~August 4, 2020~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+___________________________________________________________________________
+Started writing demultiplexing algorithm today, so far I have written functions to create the reverse complement and convert the phred score
+which was taken from PS4&9
+Taking into account the peer reviews I recieved for my pseudocode for this project, I need to make sure I do the following:
+    - Keeps counter for index pair permutations, matched, hopped, and unknown/low quality, outputs to separate file
+    - more efficient to add the indices to the header lines as you loop through the files to demultiplex, that way you only have to loop through them once
+    - consider when there is a nucleotide of N unless you check before that outside function
+    - consider making all index permutations once outside function instead of making them every function call
+    - do not store in numpy array
+    - use a dictionary to look up index hop pairs instead of iterating through a whole list
+    - check if quality is poor as your first conditional statement, because this condition overrides all other conditions
+    - if you wanna iterate through all files at once, check out itertools zip(list, list, list, list)
+
+Nate also told me to make everything in this algorithm a function, as it makes the code easier to read and it will make object-based(?) coding easier
+Look into itertools more and how I can use this to open files etc.
+I think Jonas mentioned you can open files directly into a dictionary which is worth looking into
+remember to make small blocks of code at a time and test frequently for bugs!!
+You can do it!
+
+
+
+/projects/bgmp/shared/2017_sequencing
+___________________________________________________________________________
+~~~~~~~~~~~~~~~~~~~~~~August 5, 2020~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+___________________________________________________________________________
+start making function to sort file into matched, unmatched, unknown
+use itertools: check out these functions
+
+def permutations(iterable, r=None):
+    pool = tuple(iterable)
+    n = len(pool)
+    r = n if r is None else r
+    for indices in product(range(n), repeat=r):
+        if len(set(indices)) == r:
+            yield tuple(pool[i] for i in indices)
+#this one has some problems, probably use product
+
+def product(*args, repeat=1):
+    # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+    # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+    pools = [tuple(pool) for pool in args] * repeat
+    result = [[]]
+    for pool in pools:
+        result = [x+[y] for x in result for y in pool]
+    for prod in result:
+        yield tuple(prod)
+
+def zip(*iterables):
+#zip() in conjunction with the * operator can be used to unzip a list:
+    # zip('ABCD', 'xy') --> Ax By
+    sentinel = object()
+    iterators = [iter(it) for it in iterables]
+    while iterators:
+        result = []
+        for it in iterators:
+            elem = next(it, sentinel)
+            if elem is sentinel:
+                return
+            result.append(elem)
+        yield tuple(result)
+___________________________________________________________________________
+
+Make dictionary of all index combinations using itertools
+generate filenames for matched files
+make filename abbrv. for opening matched files
+open matched files to write to: keys index seq, +r1/2: values are open file object
+open index hopped and unknown files
+open r1-4 files
+initialize counters and records
+code to sort, add indexes, etc
+close matched files
+close other files
+
+___________________________________________________________________________
+
+take in two read files and then work with one at a ime
+first R1: check phred score of line 4 with check phred function
+    if phred is good, continue else: add indicies to header and sort to unknown for r1
+next: check if indexes are matched, unmatched, unknown
+    add indicies to header, sort to proper file
+Second R4: check phred score of line 4 with check phred function
+    if phred is good, continue else: add indicies to header and sort to unknown for r2
+next: check if indexes are matched, unmatched, unknown
+    add indicies to header, sort to proper file
+___________________________________________________________________________
+from PS7, mmight be helpful:
+
+key : [gene name, header line, sequence line, protein length]
+header_line=""
+protein_sequence=""
+gene_name=""
+with open(filename, "r") as fh:
+    protein_dict = {}
+    for line in fh:
+        if line.startswith(">"):
+            if gene_name not in protein_dict and gene_name!="":
+                protein_dict[gene_name]=[header_line, protein_sequence, len(protein_sequence)]
+
+
+
+___________________________________________________________________________
+~~~~~~~~~~August 8, 2020~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+___________________________________________________________________________
+
+
+finally finished algorithm, runnning file in talapas now
+
+
+
+#!/bin/bash
+#SBATCH --partition=bgmp        ### Partition (like a queue in PBS)
+#SBATCH --job-name=demultiplex     ### Job Name
+#SBATCH --output=demultiplex_%j.out       ### File in which to store job output
+#SBATCH --error=demultiplex_%j.err       ### File in which to store job error messages
+#SBATCH --time=0-10:0:00       ### Wall clock time limit in Days-HH:MM:SS
+#SBATCH --nodes=1               ### Number of nodes needed for the job
+#SBATCH --ntasks-per-node=1     ### Number of tasks to be launched per Node
+#SBATCH --cpus-per-task=1       ### Number of tasks to be launched
+#SBATCH --account=bgmp          ### Account used for job submission
+
+conda activate bgmp_py37
+./demultiplexing_algorithm.py -idx /projects/bgmp/shared/2017_sequencing/indexes.txt -r1 /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R1_001.fastq.gz -i1 /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R2_001.fastq.gz -i2 /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R3_001.fastq.gz -r2 /projects/bgmp/shared/2017_sequencing/1294_S1_L008_R4_001.fastq.gz -q 25
